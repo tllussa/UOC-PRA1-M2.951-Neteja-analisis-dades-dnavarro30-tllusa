@@ -1,4 +1,4 @@
-# UOC-PRA1-M2.951-Neteja-analisis-dades-dnavarro30-tllusa
+# UOC-PRA2-M2.951-Neteja-analisis-dades-dnavarro30-tllusa
 
 Assignatura: M2.951 - Tipologia i cicle de vida de les dades
 
