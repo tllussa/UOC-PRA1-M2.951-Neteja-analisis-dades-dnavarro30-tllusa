@@ -1,0 +1,1619 @@
+---
+title: "Pràctica 2 - Neteja i anàlisis de les dades"
+author: "David Navarro, Antoni Llussà"
+date: "22/5/2020"
+output: 
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: 3
+  word_document:
+    toc: yes
+    toc_depth: '3'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r carrega-llibreries}
+#carrega de llibreries per mostrar taules
+library(knitr)
+library(kableExtra)
+library("ggplot2")
+library(nortest)
+library(corrplot)
+```
+
+# Pràctica 2 - Neteja i anàlisis de les dades - Pokemon Dataset
+
+## 0. Carrega del dataset.
+
+```{r read}
+#pokedex <- read.csv("/Users/davidnavarrobrugal/Downloads/pokedex_(Update_05.20).csv",header=TRUE, stringsAsFactors = TRUE,encoding = "UTF-8")
+pokedex <- read.csv("dataset/pokedex_(Update_05.20).csv",header=TRUE, stringsAsFactors = TRUE,encoding = "UTF-8")
+```
+
+Visualitzem les 5 primeres linies del csv.
+
+```{r head}
+head(pokedex)
+```
+
+
+Per inspeccionar el fitxer, utilitzarem la instrucció *str*. On veurem el nombre d'observacions, el nombre de variables, el nom de les variables i de quin tipus són.
+
+```{r inspect-dataset}
+str(pokedex)
+```
+
+Utilitzarem la instrucció *summary* per veure les freqüències, min, max, mitjan, mediana, quartils i valors absents.
+
+```{r inspect-dataset1}
+summary(pokedex)
+
+```
+
+## 1. Descripció del dataset. Perquè és important i quina pregunta/problema pretén respondre? 
+
+El dataset escollit, és una base de dades del joc de Pokemon. El dataset, es pot descarregar a: https://www.kaggle.com/mariotormo/complete-pokemon-dataset-updated-090420, té la Llicència CC BY-SA 4.0, per tant la podem usar per realitzar en aquesta pràctica.
+
+S'ha escollit aquest dataset perquè els dos membres del grup, tenim fills, i estan aficionats en aquest món. Aquest dataset ens ajudarà a saber quines tipologies de Pokemon hi ha, quines característiques tenen, quins són els Pokemons més forts, etc. La nostra experiència amb el joc, és nul·la, per tant haurem d'analitzar profundament el dataset i entendre que és cada una de les variables.
+
+El dataset escollit, té dos arxius .csv, aquests dos arxius, estan actualitzats en dates diferents. Els hem analitzat i tots contenen la mateixa informació, però estructurada diferent per mostrar si són: Normal, Legendary, Mythical, Sub Legendary.
+
+Utilitzarem l'arxiu pokedex_(Update_05.20).csv, conté 1028 observacions i 51 variables. La variable X, no la utilitzarem ja que no ens aporta informació, és un identificador de fila.
+
+Les dades es poden agrupar en:
+
+1. Informació de la Pokedex:
+
+* *Pokedex_number:* Identificador del Pokémon dins de la Pokedex nacional
+* *name:* Nom del Pokémon amb anglès.
+* *german_name:* Nom del Pokémon amb alemany.
+* *japanese_name:* Nom del Pokémon amb japonès.
+* *generation:* Número de generació en que s'ha vist per primera vegada.
+* *status:* Indica si el Pokémon és: normal, sub legendary, legendary or mythical
+* *species:* Categoria del Pokémon.
+* *type_number:* Nombre de tipus que té el Pokémon.
+* *type_1:* El tipus primari del Pokémon.
+* *type_2:* El tipus secundari del Pokémon.
+* *height_m:* Alçada del Pokémon en metres.
+* *weight_kg:* Pes del Pokémon en kg.
+* *abilities_number:* Nombre d'habilitats del Pokémon.
+* *ability_?:* Nom de l'habilitat.
+* *ability_hidden:* Si té habilitat oculta, Nom de l'habilitat del Pokémon.
+
+2. Informació d'estadistiques bàsiques:
+
+* *total_points:* Nombre total de punts de base.
+* *hp:* L'HP de base del Pokémon.
+* *attack:* L'atac de base del Pokémon.
+* *defense:* La defensa base del Pokémon.
+* *sp_attack:* Atac especial de base del Pokémon.
+* *sp_defense:* Defensa especial de base del Pokémon.
+* *speed:* La velocitat base del Pokémon.
+
+3. Informació d'entrenament:
+
+* *catch_rate:* Taxa de captura del Pokémon.
+* *base_friendship:* L'amistat base del Pokémon.
+* *base_experience:* L'experiència de base d'un Pokémon salvatge quan és capturat.
+* *growth_rate:* La taxa de creixement del Pokémon.
+
+4. Informació de criança:
+
+* *egg_type_number:* Nombre de grups on pot ser eclosionat.
+* *egg_type_?:* Noms dels grups d'ou on es pot eclosionar un Pokemon.
+* *percentage_male:* El percentatge de les espècies que són mascles. En blanc si el Pokemon no té gènere.
+* *egg_cycles:* El nombre de cicles (255-257 passos) necessaris per eclosionar un ou del Pokémon.
+
+5. Informació de tipus de defensa:
+
+* *against_?:* Divuit funcions que informen la quantitat de danys causats contra un atac d'un tipus particular.
+
+
+## 2. Integració i selecció de les dades d’interès a analitzar. 
+
+En aquest cas el dataset escollit, no es pot realitzar cap integració amb altres datasets, no n'hem trobat cap que pogués aportar més valor. 
+
+Per saber les dades d'interès a analitzar realitzarem un anàlisis visual per veure les variables de tipus factor i numèriques que ens criden l'atenció, per poder llavors decidir quin es l'estudi que es realitzarà:
+
+#### Anàlisi descriptiva visual
+
+#### Anàlisi de variables de tipus factor
+
+##### Anàlisi de la variables generation
+
+```{r ,fig.align='center', analisis-visual_status2}
+gg <- ggplot(pokedex,  aes(x = generation, fill = generation)) + 
+      geom_bar(width=0.5) +   # bar chart
+      theme_light() +   # theme
+      labs(x = "Status",   # this labels the x axis
+       y = "Núm. Pokemons",   # this labels the y axis
+       title = "Diagrama de barres de la generació dels Pokemon") # title of the plot
+
+gg
+```
+
+Es pot observar que a la primera generació és la que van aparèixer més Pokemons, llavors la cinquena i la tercera.
+
+##### Anàlisi de la variables status
+
+```{r,fig.align='center', analisis-visual_status1}
+gg <- ggplot(pokedex,  aes(x = status, fill = status)) + 
+      geom_bar(width=0.5) +   # bar chart
+      theme_light() +   # theme
+      labs(x = "Status",   # this labels the x axis
+       y = "Núm. Pokemons",   # this labels the y axis
+       title = "Diagrama de barres de l'estatus dels Pokémon") # title of the plot
+
+gg
+```
+
+Es pot observar que la majoria dels Pokemons són normals, llavors de la classe Sub Legendary, Legendary i Mythical.
+
+
+##### Anàlisi de la variable type_1 (tipus principal)
+
+```{r,fig.align='center', analisis-visual-type_1}
+gg <- ggplot(pokedex,  aes(x = type_1, fill = type_1)) + 
+      geom_bar(width=0.5) +   # bar chart
+      theme_light() +   # theme
+      labs(x = "Type1",   # this labels the x axis
+       y = "Núm. Pokemons",   # this labels the y axis
+       title = "Diagrama de barres del tipus principals del Pokemon") # title of the plot
+
+gg+ theme(axis.text.x = element_text(angle = 90))
+```
+
+Es pot observar que la majoria són de tipus water, normal, grass, bug i psychic.
+
+##### Anàlisi de la variable type_2 (tipus secundari)
+
+```{r,fig.align='center', analisis-visual_type_2}
+gg <- ggplot(pokedex,  aes(x = type_2, fill = type_2)) + 
+      geom_bar(width=0.5) +   # bar chart
+      theme_light() +   # theme
+      labs(x = "Type1",   # this labels the x axis
+       y = "Núm. Pokemons",   # this labels the y axis
+       title = "Diagrama de barres del tipus secundari del Pokemon") # title of the plot
+
+gg+ theme(axis.text.x = element_text(angle = 90))
+```
+
+Es pot observar que la majoria no tenen tipus secundari, i si en tenen la majoria són de flying.
+
+##### Anàlisi dels tipus de Pokemons llegendaris
+
+```{r,fig.align='center', type1-lengendary}
+pokedex %>%
+  dplyr::filter(status == "Legendary") %>%
+  ggplot(aes(x = type_1, fill = type_1)) + 
+      geom_bar(width=0.5) +   # bar chart
+      theme_light() +   # theme
+      labs(x = "Legendary type_1",   # this labels the x axis
+      y = "Núm. Pokemons",   # this labels the y axis
+      title = "Diagrama de barres dels Pokemons legendaris del tipus 1")+ # title of the plot
+      theme(axis.text.x = element_text(angle = 90))
+
+```
+  
+Es pot observar que la majoria de Pokemons llegendaris són de tipus Psychic i Dragon.
+
+
+##### Anàlisi de la variable growth_rate (taxa de creixement)
+
+```{r,fig.align='center', analisis-visual_growth_rate}
+gg <- ggplot(pokedex,  aes(x = growth_rate, fill = growth_rate)) + 
+      geom_bar(width=0.5) +   # bar chart
+      theme_light() +   # theme
+      labs(x = "growth_rate",   # this labels the x axis
+       y = "Núm. Pokemons",   # this labels the y axis
+       title = "Diagrama de barres delfactor de creixement del Pokemon") # title of the plot
+
+gg+ theme(axis.text.x = element_text(angle = 90))
+```
+
+Es pot observar que la majoria creixen: Mediu Fast, Medium Slow i Slow.
+
+
+##### Anàlisi de la variable egg_type_1 (Grups d'ous primer)
+
+```{r,fig.align='center', analisis-visual_egg_type_1}
+gg <- ggplot(pokedex,  aes(x =  egg_type_1 , fill =  egg_type_1 )) + 
+      geom_bar(width=0.5) +   # bar chart
+      theme_light() +   # theme
+      labs(x = "egg_type_1",   # this labels the x axis
+       y = "Núm. Pokemons",   # this labels the y axis
+       title = "Diagrama de barres del grups d'ous primer del Pokemon") # title of the plot
+
+gg+ theme(axis.text.x = element_text(angle = 90))
+```
+La majoria del tipus 1 eclosionen de tipus Field, Undiscovered, bug i Amorphous.
+
+##### Anàlisi de la variable egg_type_2 (Grups d'ous segon)
+
+```{r,fig.align='center', analisis-visual_egg_type2}
+gg <- ggplot(pokedex,  aes(x =  egg_type_2 , fill =  egg_type_2 )) + 
+      geom_bar(width=0.5) +   # bar chart
+      theme_light() +   # theme
+      labs(x = "egg_type_2",   # this labels the x axis
+       y = "Núm. Pokemons",   # this labels the y axis
+       title = "Diagrama de barres del grup d'ous segon del Pokemon") # title of the plot
+
+gg+ theme(axis.text.x = element_text(angle = 90))
+```
+
+La majoria del tipus 2 no tenen tipus, llavors són de tipus Water1 i Monster.
+
+
+#### Anàlisi de variables de tipus numèric informació de la pokedex
+
+##### Anàlisis de la variable height_m
+```{r,fig.align='center', analisis-numeric-height}
+gg <- ggplot(data=pokedex, aes(height_m)) + 
+      geom_histogram( col="blue", fill="green", alpha = .4) + 
+      labs(title="Histograma de l'alçada del Pokemon") + labs(x="Alçada", y="Nombre de Pokemons")
+gg
+
+```
+
+Es pot observar que la majoria de pokemons són d'estatura baixa de 0 a 1 metre.
+
+##### Anàlisis de la variable weight_kg
+```{r,fig.align='center', analisis-numeric-weight}
+gg <- ggplot(data=pokedex, aes(weight_kg)) + 
+      geom_histogram( col="blue", fill="green", alpha = .4) + 
+      labs(title="Histograma del pès del Pokemon") + labs(x="Pès", y="Nombre de Pokemons")
+gg
+
+```
+
+Es pot observar que la majoria de Pokemons, són lleugers de pocs Kg.
+
+##### Anàlisis de la variable abilities_number
+```{r,fig.align='center', analisis-numeric-abilities_number}
+gg <- ggplot(data=pokedex, aes(abilities_number)) + 
+      geom_histogram( col="blue", fill="green", alpha = .4) + 
+      labs(title="Histograma del nombre d'habilitats del Pokemon") + labs(x="nombre d'habilitats", y="Nombre de Pokemons")
+gg
+
+```
+
+Es pot observar que la majoria de Pokemons tenen 3 habilitats.
+
+
+#### Anàlisi de variables de tipus numèric informació de les estadístiques base
+
+##### Anàlisis de la variable total-points
+```{r,fig.align='center', analisis-numeric-total_points}
+gg <- ggplot(data=pokedex, aes(total_points)) + 
+      geom_histogram( col="blue", fill="green", alpha = .4) + 
+      labs(title="Histograma del nombre total de punts de base") + labs(x="Puntació", y="Nombre de Pokemons")
+gg
+
+```
+
+Es pot observar que la majoria del pokemons estan entre 300 i 600 punts totals.
+
+
+##### Anàlisis de la variable hp
+```{r,fig.align='center', analisis-numeric-hp}
+gg <- ggplot(data=pokedex, aes(hp)) + 
+      geom_histogram( col="blue", fill="green", alpha = .4) + 
+      labs(title="Histograma del HP de base del Pokemon") + labs(x="Puntació HP", y="Nombre de Pokemons")
+gg
+
+```
+
+Es pot observar que la majoria estan entre 50 i 100 punts d'HP.
+
+##### Anàlisis de la variable attack
+```{r,fig.align='center', analisis-numeric-attack}
+gg <- ggplot(data=pokedex, aes(attack)) + 
+      geom_histogram( col="blue", fill="green", alpha = .4) + 
+      labs(title="Histograma de l'atac de base del Pokemon") + labs(x="Puntació Atac", y="Nombre de Pokemons")
+gg
+
+```
+
+Es pot observar que la majoria estan entre 50 i 100 punts d'atac.
+
+##### Anàlisis de la variable defense
+```{r,fig.align='center', analisis-numeric-defense}
+gg <- ggplot(data=pokedex, aes(defense)) + 
+      geom_histogram( col="blue", fill="green", alpha = .4) + 
+      labs(title="Histograma de la defensa de base del Pokemon") + labs(x="Puntació Defensa", y="Nombre de Pokemons")
+gg
+
+```
+
+Es pot observar que la majoria estan entre 50 i 75 punts de defensa
+
+##### Anàlisis de la variable sp-attack
+```{r,fig.align='center', analisis-numeric-sp-attack}
+gg <- ggplot(data=pokedex, aes(sp_attack)) + 
+      geom_histogram( col="blue", fill="green", alpha = .4) + 
+      labs(title="Histograma de l'atac especial de base del Pokemon") + labs(x="Puntació l'atac especial", y="Nombre de Pokemons")
+gg
+
+```
+
+La majoria estan entre 50 i 100 punts d'atac especial.
+
+##### Anàlisis de la variable sp-defense
+```{r,fig.align='center', analisis-numeric-sp-defense}
+gg <- ggplot(data=pokedex, aes(sp_defense)) + 
+      geom_histogram( col="blue", fill="green", alpha = .4) + 
+      labs(title="Histograma de la defensa especial de base del Pokemon") + labs(x="Puntació defensa especial", y="Nombre de Pokemons")
+gg
+
+```
+
+La majoria estan entre 50 i 90 punts de defensa especial.
+
+##### Anàlisis de la variable speed
+```{r,fig.align='center', analisis-numeric-speed}
+gg <- ggplot(data=pokedex, aes(speed)) + 
+      geom_histogram( col="blue", fill="green", alpha = .4) + 
+      labs(title="Histograma de la velocitat de base del Pokemon") + labs(x="Puntació velocitat", y="Nombre de Pokemons")
+gg
+
+```
+La majoria estan entre 25 i 100 punts de velocitat.
+
+
+#### Distribució del total de punts
+
+```{r,fig.align='center', distribucio-1}
+p <- ggplot(pokedex, aes(x=type_1, y=total_points, fill=type_1)) + geom_boxplot()+ 
+  labs(title="Boxplot de la distribució del total de punts del tipus_1 dels pokemons") +
+  labs(x="Tipus_1", y="Total de punts") 
+
+p + theme(axis.text.x = element_text(angle = 90))
+```
+
+Es pot veure que de mitjana els pokemons que tenen més puntuació són els de tipus Dragon i llavors els de Psychic Es pot veure que hi ha un valor absent a els de tipus Electric.
+
+
+```{r,fig.align='center', distribucio-2}
+pokedex %>%
+  dplyr::filter(status == "Legendary") %>%
+  
+  ggplot(aes(x=type_1, y=total_points, fill=type_1)) + geom_boxplot()+ 
+  labs(title="Boxplot de la distribució del total de punts del tipus_1 dels pokemons llegendaris") +
+  labs(x="Tipus_1", y="Total de punts") + theme(axis.text.x = element_text(angle = 90))
+```
+
+Es pot observar que els que tenen més puntuació són els de tipus Poison. I llavors hi ha valors absents als de tipus Dragon i Psychic.
+
+```{r subset}
+pokedexAnalysis <- subset(pokedex, select=c(status, type_number, type_1, type_2, height_m, weight_kg, abilities_number, ability_1, ability_2, total_points, hp, attack, defense, sp_attack, sp_defense, speed, catch_rate, base_friendship, base_experience, growth_rate,generation))
+```
+```{r view_subset}
+head(pokedexAnalysis)
+```
+
+## 3. Neteja de les dades. 
+
+### 3.1. Les dades contenen zeros o elements buits? Com gestionaries aquests casos? 
+
+Les dades contenen zeros, però no estan considerades com a valors absents. Amb l'anàlisi del summary, es podia veure que hi ha atributs que tenen valors absents:
+
+* weight_kg: 1 NA
+* catch_rate: 104 NA
+* base_friendship: 104 NA
+* base_experience: 104 NA
+* percentage_male: 236 NA   
+* egg_cycles: 1 NA
+
+Amb la reducció del dataset:
+
+```{r veure_absents}
+sapply(pokedexAnalysis, function(x) sum(is.na(x)))
+```
+
+En el cas de weight_kg, el substituirem a partir dels k-veïns més propers utilitzant la distància de Grower amb la informació de totes les variables. Els altres atributs absents, no els analitzarem. Ja que ens centrem l'anàlisi en altres atributs.
+
+```{r knn}
+library(VIM)
+pokedexKNN <- kNN(pokedexAnalysis)
+pokedexAnalysis$weight_kg <- pokedexKNN$weight_kg
+
+### verifiquem que no te valors perduts
+sum(is.na(pokedex$weight_kg))
+```
+
+
+
+### 3.2. Identificació i tractament de valors extrems. 
+
+Els valors atípics o extrems, són les observacions que són numèricament distants de la resta de les observacions. A vegades poden indicar que aquests valors pertanyen a una població diferent de les mostres establertes.
+
+A continuació analitzem els valors atípics:
+
+
+```{r}
+for(k in 1:ncol(pokedexAnalysis)){
+  if(is.numeric(pokedexAnalysis[,k])){
+    x <- boxplot.stats(pokedexAnalysis[,k])$out
+    print(colnames(pokedexAnalysis[k]))
+    print(x)
+  }
+}
+
+```
+
+
+No tractarem aquests valors extrems, degut a la tipologia de problema que estem tractant, com que hi ha tanta varietat d'espècies de Pokemon, aquests valors poden ser normals.
+
+## 4. Anàlisi de les dades. 
+
+### 4.1. Selecció dels grups de dades que es volen analitzar/comparar (planificació dels anàlisis a aplicar).
+
+
+Pels diferents anàlisis que es vol realitzar, es pretén analitzar els Pokemons per grups de classe separats: Tot el grup en general, per el seu estatus: normal, llegendari i sub llegendari i per tipus de pokemon: Bug, Dragon, Psychic, Steel i Poison. Aquests tipus de Pokemons, han estat seleccionats segons el que hem vist en els gràfics dels boxplots de distribució de total de punts i tipus_1. I de la variable status. Per tant haurem de crear diferents dataframes per poder fer els estudis corresponents.
+
+
+Es generaran variables de tipus Factor tant de pes com d'alçada. Pes[lleuger,pesat] i Alçada[baix,alt], per poder realitzar test de 2 mostres amb el total_points.
+
+
+```{r -creacio-var-factor}
+funcH <- function(h) { 
+  if(h <= 1.368 ){
+    "baix"
+  }else if(h > 1.368 ){
+    "alt"
+  }
+} 
+
+funcW <- function(w) { 
+  if(w <= 69.75 ){
+    "lleuger"
+  }else if(w > 69.75 ){
+    "pesat"
+  }
+} 
+
+##"height_m", "weight_kg"
+pokedexAnalysis$Fheight_m <- as.factor(sapply(pokedexAnalysis$height_m,funcH)) 
+pokedexAnalysis$Fweight_kg <- as.factor(sapply(pokedexAnalysis$weight_kg,funcW))
+
+summary(pokedexAnalysis)
+
+```
+
+
+
+A continuació, generem els diferents dataframes, a partir del dataframe que prèviament s'ha netejat "pokedexAnalysis":
+
+
+```{r -creaciodataframe}
+pokedexAnalysis.Legendary <-subset(pokedexAnalysis, status == 'Legendary')
+pokedexAnalysis.SubLegendary <-subset(pokedexAnalysis, status == 'Sub Legendary')
+pokedexAnalysis.Normal <-subset(pokedexAnalysis, status == 'Normal')
+pokedexAnalysis.Bug <-subset(pokedexAnalysis, type_1 == 'Bug')
+pokedexAnalysis.Dragon <-subset(pokedexAnalysis, type_1 == 'Dragon')
+pokedexAnalysis.Psychic <-subset(pokedexAnalysis, type_1 == 'Psychic')
+pokedexAnalysis.Poison <-subset(pokedexAnalysis, type_1 == 'Poison')
+pokedexAnalysis.Steel <-subset(pokedexAnalysis, type_1 == 'Steel')
+```
+
+
+Els estudis a realitzar seran:
+
+1. Estudiar les variables d’estadística base, que fan determinar la força total d'un Pokemon. Es vol estudiar la relació entre aquests atributs. S'estudiarà de forma global entre tots els tipus i llavors amb la classe Dragon i Bug, que són els més forts i dèbils respectivament. També estudiarem les classes Steel, Poison, Psychic. Influeix igual en els Pokemons llegendaris i sub llegendaris?
+
+2. Estudiar si segons diferents tipus de pes i d'alçada del Pokemon, influeixen a que el Pokemon sigui més fort, per tant tinguin un total de punts més elevat. 
+
+3. Fer una predicció de com les variables d’estadística base, el pes i l'alçada influeixen amb la variable base_experience.
+
+
+### 4.2. Comprovació de la normalitat i homogeneïtat de la variància. 
+
+Mitjançant la prova de normalitat *Shapiro-Wilk* comprovem la normalitat de les dades quantitatives. Si el p-valor és superior a 0,05 ho considerarem com distribució normal:
+
+#### Compravació de la normalitat de tot el grup
+
+```{r definicio-variables-funcions-normalitat}
+## definim taula de variables per els càlculs de la normalitat
+analisi_normalitat <- c("height_m", "weight_kg","total_points", "hp", "attack", "defense", "sp_attack", "sp_defense", "speed")
+
+## funció per calcular el test de Shapiro-Wilk
+shapirotest <- function(x){
+  alpha = 0.05
+  p_val = shapiro.test(x)$p.value
+  if (p_val > alpha) { "> 0.05" }
+  else {"< 0.05"}
+}
+
+```
+
+```{r comprovacio-shapirtotest-general}
+apply(pokedexAnalysis[,analisi_normalitat], 2, shapirotest)
+```
+
+Un cop vistos els resultats, es comprova que no hi ha cap variable que segueix una distribució normal, s’aplicarà el test de Spearman per calcular les correlacions entre parells de variables:
+
+
+```{r}
+corr.general<-cor(pokedexAnalysis[,analisi_normalitat], method="spearman")
+corr.general
+```
+
+No s'identifica cap correlació negativa. El parell de variables que estan més correlacionades són weight_kg i height_m. La que menys defense i speed.
+
+
+#### Compravació de la normalitat dels Llegendaris
+
+```{r comprovacio-shapirtotest-llegendaris}
+apply(pokedexAnalysis.Legendary[,analisi_normalitat], 2, shapirotest)
+```
+
+Un cop vistos els resultats, es comprova que hi ha una variable que compleix la distribució normal: sp_attack. La resta no segueixen una distribució normal, s’aplicarà el test de Spearman per calcular les correlacions entre parells de variables:
+
+
+```{r}
+corr.legendary<-cor(pokedexAnalysis.Legendary[,analisi_normalitat], method="spearman")
+corr.legendary
+```
+
+Hi ha bastantes correlacions negatives poc significatives. El parell de variables que estan més correlacionades són el sp_attack i total_points. La que menys sp_defense i sp_attack.
+
+
+#### Compravació de la normalitat dels Sub Llegendaris
+
+```{r comprovacio-shapirtotest-subllegendaris}
+apply(pokedexAnalysis.SubLegendary[,analisi_normalitat], 2, shapirotest)
+```
+
+Un cop vistos els resultats, es comprova que hi ha variables que compleixen la distribució normal: attack, sp_attack, sp_defense, la resta no segueixen una distribució normal, s’aplicarà el test de Spearman per calcular les correlacions entre parells de variables:
+
+
+```{r}
+corr.sublegendary<-cor(pokedexAnalysis.SubLegendary[,analisi_normalitat], method="spearman")
+corr.sublegendary
+```
+
+Es pot observar que hi ha bastantes correlacions negatives poc significatives. El parell de variables que estan més correlacionades són el weight_kg i el height_m. La que menys sp_attack i height_m.
+
+#### Compravació de la normalitat dels Normal
+
+```{r comprovacio-shapirtotest-normal}
+apply(pokedexAnalysis.Normal[,analisi_normalitat], 2, shapirotest)
+```
+
+Un cop vistos els resultats, es comprova que no hi ha cap variable que segueix una distribució normal, s’aplicarà el test de Spearman per calcular les correlacions entre parells de variables:
+
+
+```{r}
+corr.normal<-cor(pokedexAnalysis.Normal[,analisi_normalitat], method="spearman")
+corr.normal
+```
+
+Es pot observar que hi ha poques correlacions negatives poc significatives. El parell de variables que estan més correlacionades són el weight_kg i el height_m. La que menys sp_defense i speed.
+
+#### Compravació de la normalitat dels Bug
+
+```{r comprovacio-shapirtotest-bug}
+apply(pokedexAnalysis.Bug[,analisi_normalitat], 2, shapirotest)
+```
+
+Un cop vistos els resultats, es comprova que hi ha una variable que compleix la distribució normal: hp. La resta no segueixen una distribució normal, s’aplicarà el test de Spearman per calcular les correlacions entre parells de variables:
+
+
+```{r}
+corr.bug<-cor(pokedexAnalysis.Bug[,analisi_normalitat], method="spearman")
+corr.bug
+```
+
+Es pot observar que hi ha poques correlacions negatives poc significatives. El parell de variables que estan més correlacionades són el weight_kg i el height_m. La que menys sp_defense i speed.
+
+
+#### Compravació de la normalitat dels Dragon
+
+```{r comprovacio-shapirtotest-dragon}
+apply(pokedexAnalysis.Dragon[,analisi_normalitat], 2, shapirotest)
+```
+
+Un cop vistos els resultats, es comprova que hi ha variables que compleixen la distribució normal: attack, defense, sp_attack, sp_defense, speed, i la resta no segueixen una distribució normal, s’aplicarà el test de Spearman per calcular les correlacions entre parells de variables:
+
+
+```{r}
+corr.dragon<-cor(pokedexAnalysis.Dragon[,analisi_normalitat], method="spearman")
+corr.dragon
+```
+
+Es pot observar que no hi ha correlacions negatives. El parell de variables que estan més correlacionades són el sp_attack i total_points. La que menys attack i sp_defense.
+
+
+#### Compravació de la normalitat dels Steel
+
+```{r comprovacio-shapirtotest-steel}
+apply(pokedexAnalysis.Steel[,analisi_normalitat], 2, shapirotest)
+```
+
+Un cop vistos els resultats, es comprova que hi ha variables que compleixen la distribució normal: total_points, attack, sp_defense, i la resta no segueixen una distribució normal, s’aplicarà el test de Spearman per calcular les correlacions entre parells de variables:
+
+
+```{r}
+corr.steel<-cor(pokedexAnalysis.Steel[,analisi_normalitat], method="spearman")
+corr.steel
+```
+
+Es pot observar que no hi ha correlacions negatives. El parell de variables que estan més correlacionades són el weight_kg i height_m. La que menys speed i weight_kg.
+
+
+#### Compravació de la normalitat dels Poison
+
+```{r comprovacio-shapirtotest-poison}
+apply(pokedexAnalysis.Poison[,analisi_normalitat], 2, shapirotest)
+```
+
+Un cop vistos els resultats, es comprova que hi ha una variable que compleix la distribució normal: attack. La resta no segueixen una distribució normal, s’aplicarà el test de Spearman per calcular les correlacions entre parells de variables:
+
+
+```{r}
+corr.poison<-cor(pokedexAnalysis.Poison[,analisi_normalitat], method="spearman")
+corr.poison
+```
+
+Es pot observar que no hi ha correlacions negatives. El parell de variables que estan més correlacionades són el total_points i sp_defense. La que menys speed i defense.
+
+#### Compravació de la normalitat dels Psychic
+
+```{r comprovacio-shapirtotest-psychic}
+apply(pokedexAnalysis.Psychic[,analisi_normalitat], 2, shapirotest)
+```
+
+Un cop vistos els resultats, es comprova que hi ha variables que compleixen la distribució normal: total_points, sp_attack, sp_defense, speed, i la resta no segueixen una distribució normal, s’aplicarà el test de Spearman per calcular les correlacions entre parells de variables:
+
+
+```{r}
+corr.psychic<-cor(pokedexAnalysis.Psychic[,analisi_normalitat], method="spearman")
+corr.psychic
+```
+
+Es pot observar que no hi ha correlacions negatives. El parell de variables que estan més correlacionades són el weight_kg i height_m. La que menys speed i hp.
+
+
+#### Comprovació de la homogenietat
+
+
+Per mirar la homogenietat, utilitzarem el test *Fligner-killen* per comparar les variables amb distribució normal, sinó utilitzarem el test *Kruskal-wallis*.
+
+```{r definicio-variables-funcions-homogenietat}
+## definim taula de variables per els càlculs de la normalitat i de la homogeneïtat de la variànça
+analisi_homogenietat <- c("height_m", "weight_kg","hp", "attack", "defense", "sp_attack", "sp_defense", "speed")
+total_points <- c("height_m", "weight_kg","hp", "attack", "defense", "sp_attack", "sp_defense", "speed")
+
+## funció per calcular el test de kruskal-wallis
+kruskaltest <- function(y,x){
+  alpha = 0.05
+  p_val = kruskal.test(x ~ y)$p.value
+  if (p_val > alpha) { "> 0.05"}
+  else { "< 0.05"}
+}
+
+```
+
+
+##### Comprovació de la homogenietat de tot el grup
+
+Com que totes les variables no tenien una distribució normal, aplicarem el test de Kruskal-wallis per veure el seu comportament, entre el total_points i la resta de variables:
+
+```{r varianca-grup}
+sapply(pokedexAnalysis[,analisi_normalitat], kruskaltest, pokedexAnalysis$total_points)
+```
+
+Es pot observar que cap variable la p > 0.05. No podem acceptar la hipòtesis de que les variances del total de punts amb la resta són homogènies.
+
+
+##### Comprovació de la homogenietat de Llegendaris
+
+Com que totes les variables no tenien una distribució normal, aplicarem el test de Kruskal-wallis per veure el seu comportament, entre el total_points i la resta de variables:
+
+
+```{r varianca-grup-llegendaris}
+sapply(pokedexAnalysis.Legendary[,analisi_homogenietat], kruskaltest, pokedexAnalysis.Legendary$total_points)
+
+```
+
+Es pot observar que totes les variables la p > 0.05. Podem acceptar la hipòtesis de que les variances del total de punts amb la resta són homogènies.
+
+##### Comprovació de la homogenietat de Sub Llegendaris
+
+Com que totes les variables no tenien una distribució normal, aplicarem el test de Kruskal-wallis per veure el seu comportament, entre el total_points i la resta de variables:
+
+```{r varianca-grup-subllendaris}
+sapply(pokedexAnalysis.SubLegendary[,analisi_homogenietat], kruskaltest, pokedexAnalysis.SubLegendary$total_points)
+
+```
+
+Es pot observar que totes les variables menys la "hp",  la p > 0.05. Podem acceptar la hipòtesis de que les variances del total de punts amb la resta són homogènies.
+
+##### Comprovació de la homogenietat de Normal
+
+Com que totes les variables no tenien una distribució normal, aplicarem el test de Kruskal-wallis per veure el seu comportament, entre el total_points i la resta de variables:
+
+```{r varianca-grup-normal}
+sapply(pokedexAnalysis.Normal[,analisi_homogenietat], kruskaltest, pokedexAnalysis.Normal$total_points)
+```
+
+Es pot observar que cap variable la p > 0.05. No podem acceptar la hipòtesis de que les variances del total de punts amb la resta són homogènies.
+
+
+##### Comprovació de la homogenietat del tipus Bug
+
+Com que totes les variables no tenien una distribució normal, aplicarem el test de Kruskal-wallis per veure el seu comportament, entre el total_points i la resta de variables:
+
+```{r varianca-grup-bug}
+sapply(pokedexAnalysis.Bug[,analisi_homogenietat], kruskaltest, pokedexAnalysis.Bug$total_points)
+```
+
+
+Es pot observar que només hi ha la variable "weight_kg" on la p > 0.05. Només podem acceptar la hipòtesis de que les variàncies del total de punts amb la resta són homogènies, en la variable "weight_kg" respecte "total_points".
+
+
+##### Comprovació de la homogenietat del tipus Dragon
+
+Com que totes les variables no tenien una distribució normal, aplicarem el test de Kruskal-wallis per veure el seu comportament, entre el total_points i la resta de variables:
+
+```{r varianca-grup-dragon}
+sapply(pokedexAnalysis.Dragon[,analisi_homogenietat], kruskaltest, pokedexAnalysis.Dragon$total_points)
+```
+
+Es pot observar que totes les variables menys la "hp","sp_attack" i "sp_defense",  la p > 0.05. Podem acceptar la hipòtesis de que les variàncies del total de punts amb la resta són homogènies, en les variables que tenen la p > 0.05.
+
+
+##### Comprovació de la homogenietat del tipus Steel
+
+Com que totes les variables no tenien una distribució normal, aplicarem el test de Kruskal-wallis per veure el seu comportament, entre el total_points i la resta de variables:
+
+```{r varianca-grup-steel}
+sapply(pokedexAnalysis.Steel[,analisi_homogenietat], kruskaltest, pokedexAnalysis.Steel$total_points)
+```
+
+Es pot observar que totes les variables menys la "hp",  la p > 0.05. Podem acceptar la hipòtesis de que les variances del total de punts amb la resta són homogènies.
+
+
+##### Comprovació de la homogenietat del tipus Poison
+
+Com que totes les variables no tenien una distribució normal, aplicarem el test de Kruskal-wallis per veure el seu comportament, entre el total_points i la resta de variables:
+
+```{r varianca-grup-poison}
+sapply(pokedexAnalysis.Poison[,analisi_homogenietat], kruskaltest, pokedexAnalysis.Poison$total_points)
+```
+
+Es pot observar que totes les variables menys la "height_m" i "sp_attack",  la p > 0.05. Podem acceptar la hipòtesis de que les variàncies del total de punts amb la resta són homogènies, només en les que la p > 0.05.
+
+
+##### Comprovació de la homogenietat del tipus Psychic
+
+Com que totes les variables no tenien una distribució normal, aplicarem el test de Kruskal-wallis per veure el seu comportament, entre el total_points i la resta de variables:
+
+```{r varianca-grup-psychic}
+sapply(pokedexAnalysis.Psychic[,analisi_homogenietat], kruskaltest, pokedexAnalysis.Psychic$total_points)
+```
+
+Es pot observar que nomes les variables "weight_kg" i "sp_attack",  la p > 0.05. Podem acceptar la hipòtesis de que les variàncies del total de punts amb la resta són homogènies, només en les que la p> 0.05.
+
+
+### 4.3. Aplicació de proves estadístiques per comparar els grups de dades. En funció de les dades i de l’objectiu de l’estudi, aplicar proves de contrast d’hipòtesis, correlacions, regressions, etc. Aplicar almenys tres mètodes d’anàlisi diferents. 
+
+
+#### 4.3.1. Estudiar les variables d’estadística base, que fan determinar la força total d'un Pokemon. Es vol estudiar la relació entre aquests atributs. S'estudiarà de forma global entre tots els tipus i llavors amb la classe Dragon i Bug, que són els més forts i dèbils respectivament. També estudiarem les classes Steel, Poison, Psychic. Influeix igual en els Pokemons llegendaris i sub llegendaris?
+
+
+Com que per estudiar la normalitat de les dades s'han realitzat les matrius de correlació, les mostrarem i estudiarem la importància de les variables segons el total_points:
+
+##### Matriu de correlació dels Pokemons en general
+
+```{r}
+corr.general
+```
+
+En base a la variable total_points, es pot veure que amb la variable que està més correlacionada és la de sp_defense, i llavors les quatre variables següents es podria dir que estan igual de correlacionades, sp_attack, height_m, attack i hp.
+
+sp_defense:	0.7464024
+sp_attack:	0.7293632
+height_m:	0.7271834
+attack:	0.7253079
+hp:	0.7224800
+defense:	0.6786822
+weight_kg:	0.6429082
+speed:	0.5454881
+
+
+##### Matriu de correlació dels Pokemons de l'estatus normal
+
+```{r}
+corr.normal
+```
+
+En base a la variable total_points, es pot veure que amb la variable que està més correlacionada és la de sp_defense juntament amb height_m.
+
+sp_defense:	0.7299270
+height_m:	0.7294372
+hp:	0.7025326
+attack:	0.6892365
+sp_attack:	0.6768441
+defense:	0.6638725
+weight_kg:	0.6430732
+speed:	0.4658765
+
+
+##### Matriu de correlació dels Pokemons de l'estatus llegendàri
+
+```{r}
+corr.legendary
+```
+
+En base a la variable total_points, es pot veure que amb la variable que està més correlacionada és la de attack juntament amb sp_attack.
+
+attack:	0.53909147
+sp_attack:	0.53442491
+height_m:	0.39192759
+speed:	0.37948600
+hp:	0.33977698
+sp_defense:	0.27255534
+weight_kg:	0.21754689
+defense:	0.08670783
+
+
+##### Matriu de correlació dels Pokemons de l'estatus sub llegendaris
+
+```{r}
+corr.sublegendary
+```
+
+En base a la variable total_points, es pot veure que amb la variable que està més correlacionada és la de sp_defense.
+
+sp_defense:	0.42070355
+hp:	0.28281908
+defense:	0.22539803
+speed:	0.21668816
+sp_attack:	0.14757320
+weight_kg:	0.11100220
+attack:	0.05984086
+
+
+##### Matriu de correlació dels Pokemons del tipus 1 bug
+
+```{r}
+corr.bug
+```
+
+En base a la variable total_points, es pot veure que amb la variable que està més correlacionada és la de hp.
+
+hp:	0.8134250
+attack:	0.7478347
+weight_kg: 0.7367446
+sp_defense:	0.7173375
+height_m:	0.7040183
+sp_attack: 0.6814673
+defense: 0.6384841
+speed: 0.5637374
+
+
+
+##### Matriu de correlació dels Pokemons del tipus 1 dragon
+
+```{r}
+corr.dragon
+```
+
+En base a la variable total_points, es pot veure que amb la variable que està més correlacionada és la de sp_attack juntament amb hp.
+
+sp_attack	0.9075369
+hp	0.8965642
+defense	0.7963697
+height_m	0.7893448
+weight_kg	0.7822978
+attack	0.7753509
+sp_defense	0.7130383
+speed	0.6775899
+
+
+
+##### Matriu de correlació dels Pokemons del tipus 1 poison
+
+```{r}
+corr.poison
+```
+
+En base a la variable total_points, es pot veure que amb la variable que està més correlacionada és la de sp_defense.
+
+sp_defense	0.8661734
+defense	0.7857976
+attack	0.7621680
+sp_attack	0.7509551
+hp	0.7142207
+weight_kg	0.7136130
+height_m	0.6928509
+speed	0.5798126
+
+
+##### Matriu de correlació dels Pokemons del tipus 1 steel
+
+```{r}
+corr.steel
+```
+
+En base a la variable total_points, es pot veure que amb la variable que està més correlacionada és la de hp.
+
+hp	0.8046392
+sp_attack	0.7770171
+attack	0.7245656
+height_m	0.6974041
+defense	0.6544974
+sp_defense	0.6309232
+speed	0.5891575
+weight_kg	0.5855208
+
+
+##### Matriu de correlació dels Pokemons del tipus 1 psychic
+
+```{r}
+corr.psychic
+```
+
+En base a la variable total_points, es pot veure que amb la variable que està més correlacionada és la de attack.
+
+attack	0.8883465
+defense	0.7051373
+sp_attack	0.7025825
+height_m	0.6798441
+sp_defense	0.6761585
+speed	0.6543700
+hp	0.6304778
+weight_kg	0.5575698
+
+
+#### 4.3.2. Estudiar si segon diferents tipus de pes i d'alçada del Pokemon, influeixen a que el Pokemon sigui més fort, per tant tinguin un total de punts més elevat. 
+
+<p>La segona prova estadisticca que es realitzarà serà el contrast d'hipotesis sobre dues mostres per determinar si el total_points del Pokémon és superior depenent de la seva alçada, i si el total_points del Pokémon és superior depenent del seu pes.</p>
+
+##### Test de dues mostres: el total de punts (força) del Pokémon en funció del pes
+
+
+##### Test de dues mostres de Tots els Pokemons
+
+**Segons pes:**
+
+H0: µlleuger = µpesat
+H1: µlleuger < µpesat
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis$total_points[pokedexAnalysis$Fweight=="lleuger"], pokedexAnalysis$total_points[pokedexAnalysis$Fweight=="pesat"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fweight_kg,pokedexAnalysis,var.equal=T, alternative="less")
+```
+
+El valor p és molt inferior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem rebutjar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb el pes lleuger i pesat. Es pot dir que els Pokemons amb més pes tenen un total_points superior.
+
+
+
+
+##### Test de dues mostres de Pokemons Llegendaris
+
+**Segons pes:**
+
+H0: µlleuger = µpesat
+H1: µlleuger < µpesat
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.Legendary$total_points[pokedexAnalysis.Legendary$Fweight=="lleuger"], pokedexAnalysis.Legendary$total_points[pokedexAnalysis.Legendary$Fweight=="pesat"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fweight_kg,pokedexAnalysis.Legendary,var.equal=T, alternative="less")
+```
+
+El valor p és inferior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem rebutjar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb el pes lleuger i pesat. Es pot dir que els Pokemons amb més pes tenen un total_points superior.
+
+
+
+##### Test de dues mostres de Pokemons Sub Llegendaris
+
+**Segons pes:**
+
+H0: µlleuger = µpesat
+H1: µlleuger < µpesat
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.SubLegendary$total_points[pokedexAnalysis.SubLegendary$Fweight=="lleuger"], pokedexAnalysis.SubLegendary$total_points[pokedexAnalysis.SubLegendary$Fweight=="pesat"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fweight_kg,pokedexAnalysis.SubLegendary,var.equal=T, alternative="less")
+```
+
+El valor p és superior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem acceptar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb el pes lleuger i pesat.
+
+
+##### Test de dues mostres de Pokemons de tipus Normal
+
+**Segons pes:**
+
+H0: µlleuger = µpesat
+H1: µlleuger < µpesat
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.Normal$total_points[pokedexAnalysis.Normal$Fweight=="lleuger"], pokedexAnalysis.Normal$total_points[pokedexAnalysis.Normal$Fweight=="pesat"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fweight_kg,pokedexAnalysis.Normal,var.equal=T, alternative="less")
+```
+
+El valor p és molt inferior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem rebutjar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb el pes lleuger i pesat. Es pot dir que els Pokemons amb més pes tenen un total_points superior.
+
+
+##### Test de dues mostres de Pokemons de tipus Bug
+
+**Segons pes:**
+
+H0: µlleuger = µpesat
+H1: µlleuger < µpesat
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.Bug$total_points[pokedexAnalysis.Bug$Fweight=="lleuger"], pokedexAnalysis.Bug$total_points[pokedexAnalysis.Bug$Fweight=="pesat"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fweight_kg,pokedexAnalysis.Bug,var.equal=T, alternative="less")
+```
+
+El valor p és molt inferior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem rebutjar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb el pes lleuger i pesat. Es pot dir que els Pokemons amb més pes tenen un total_points superior.
+
+##### Test de dues mostres de Pokemons de tipus Dragon
+
+**Segons pes:**
+
+H0: µlleuger = µpesat
+H1: µlleuger < µpesat
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.Dragon$total_points[pokedexAnalysis.Dragon$Fweight=="lleuger"], pokedexAnalysis.Dragon$total_points[pokedexAnalysis.Dragon$Fweight=="pesat"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fweight_kg,pokedexAnalysis.Dragon,var.equal=T, alternative="less")
+```
+
+El valor p és molt inferior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem rebutjar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb el pes lleuger i pesat. Es pot dir que els Pokemons amb més pes tenen un total_points superior.
+
+
+##### Test de dues mostres de Pokemons de tipus Poison
+
+**Segons pes:**
+
+H0: µlleuger = µpesat
+H1: µlleuger < µpesat
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.Poison$total_points[pokedexAnalysis.Poison$Fweight=="lleuger"], pokedexAnalysis.Poison$total_points[pokedexAnalysis.Poison$Fweight=="pesat"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fweight_kg,pokedexAnalysis.Poison,var.equal=T, alternative="less")
+```
+
+El valor p és molt inferior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem rebutjar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb el pes lleuger i pesat. Es pot dir que els Pokemons amb més pes tenen un total_points superior.
+
+
+##### Test de dues mostres de Pokemons de tipus Steel
+
+**Segons pes:**
+
+H0: µlleuger = µpesat
+H1: µlleuger < µpesat
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.Steel$total_points[pokedexAnalysis.Steel$Fweight=="lleuger"], pokedexAnalysis.Steel$total_points[pokedexAnalysis.Steel$Fweight=="pesat"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fweight_kg,pokedexAnalysis.Steel,var.equal=T, alternative="less")
+```
+
+El valor p és molt inferior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem rebutjar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb el pes lleuger i pesat. Es pot dir que els Pokemons amb més pes tenen un total_points superior.
+
+
+
+##### Test de dues mostres de Pokemons de tipus Psychic
+
+**Segons pes:**
+
+H0: µlleuger = µpesat
+H1: µlleuger < µpesat
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.Psychic$total_points[pokedexAnalysis.Psychic$Fweight=="lleuger"], pokedexAnalysis.Psychic$total_points[pokedexAnalysis.Psychic$Fweight=="pesat"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fweight_kg,pokedexAnalysis.Psychic,var.equal=T, alternative="less")
+```
+
+El valor p és molt inferior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem rebutjar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb el pes lleuger i pesat. Es pot dir que els Pokemons amb més pes tenen un total_points superior.
+
+
+
+
+
+##### Test de dues mostres: el total de punts (força) del Pokémon en funció l'alçada
+
+
+##### Test de dues mostres de Tots els Pokemons
+
+**Segons alçada:**
+
+H0: µbaix = µalt
+H1: µbaix < µalt
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis$total_points[pokedexAnalysis$Fheight_m=="baix"], pokedexAnalysis$total_points[pokedexAnalysis$Fheight_m=="alt"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fheight_m,pokedexAnalysis,var.equal=T, alternative="less")
+```
+
+El valor p és superior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem acceptar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb l'alçada alt i baix.
+
+
+##### Test de dues mostres de Pokemons Llegendaris
+
+**Segons alçada:**
+
+H0: µbaix = µalt
+H1: µbaix < µalt
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.Legendary$total_points[pokedexAnalysis.Legendary$Fheight_m=="baix"], pokedexAnalysis.Legendary$total_points[pokedexAnalysis.Legendary$Fheight_m=="alt"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fheight_m,pokedexAnalysis.Legendary,var.equal=T, alternative="less")
+```
+
+El valor p és superior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem acceptar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb l'alçada alt i baix.
+
+
+
+##### Test de dues mostres de Pokemons Sub Llegendaris
+
+**Segons alçada:**
+
+H0: µbaix = µalt
+H1: µbaix < µalt
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.SubLegendary$total_points[pokedexAnalysis.SubLegendary$Fheight_m=="baix"], pokedexAnalysis.SubLegendary$total_points[pokedexAnalysis.SubLegendary$Fheight_m=="alt"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fheight_m,pokedexAnalysis.SubLegendary,var.equal=T, alternative="less")
+```
+
+El valor p és superior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem acceptar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb l'alçada alt i baix.
+
+
+##### Test de dues mostres de Pokemons de tipus Normal
+
+**Segons alçada:**
+
+H0: µbaix = µalt
+H1: µbaix < µalt
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.Normal$total_points[pokedexAnalysis.Normal$Fheight_m=="baix"], pokedexAnalysis.Normal$total_points[pokedexAnalysis.Normal$Fheight_m=="alt"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fheight_m,pokedexAnalysis.Normal,var.equal=T, alternative="less")
+```
+
+El valor p és superior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem acceptar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb l'alçada alt i baix.
+
+
+##### Test de dues mostres de Pokemons de tipus Bug
+
+**Segons alçada:**
+
+H0: µbaix = µalt
+H1: µbaix < µalt
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.Bug$total_points[pokedexAnalysis.Bug$Fheight_m=="baix"], pokedexAnalysis.Bug$total_points[pokedexAnalysis.Bug$Fheight_m=="alt"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fheight_m,pokedexAnalysis.Bug,var.equal=T, alternative="less")
+```
+
+El valor p és superior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem acceptar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb l'alçada alt i baix.
+
+##### Test de dues mostres de Pokemons de tipus Dragon
+
+**Segons alçada:**
+
+H0: µbaix = µalt
+H1: µbaix < µalt
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.Dragon$total_points[pokedexAnalysis.Dragon$Fheight_m=="baix"], pokedexAnalysis.Dragon$total_points[pokedexAnalysis.Dragon$Fhe =="alt"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fheight_m,pokedexAnalysis.Dragon,var.equal=T, alternative="less")
+```
+
+El valor p és superior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem acceptar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb l'alçada alt i baix.
+
+
+##### Test de dues mostres de Pokemons de tipus Poison
+
+**Segons alçada:**
+
+H0: µbaix = µalt
+H1: µbaix < µalt
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.Poison$total_points[pokedexAnalysis.Poison$Fheight_m=="baix"], pokedexAnalysis.Poison$total_points[pokedexAnalysis.Poison$Fheight_m=="alt"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fweight_kg,pokedexAnalysis.Poison,var.equal=T, alternative="less")
+```
+
+El valor p és molt inferior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem rebutjar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual els alts i baixos. Es pot dir que els Pokemons amb més alçada tenen un total_points superior.
+
+
+##### Test de dues mostres de Pokemons de tipus Steel
+
+**Segons alçada:**
+
+H0: µbaix = µalt
+H1: µbaix < µalt
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.Steel$total_points[pokedexAnalysis.Steel$Fheight_m=="baix"], pokedexAnalysis.Steel$total_points[pokedexAnalysis.Steel$Fheight_m=="alt"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fheight_m,pokedexAnalysis.Steel,var.equal=T, alternative="less")
+```
+
+
+El valor p és superior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem acceptar la hipòtesis nul·la del qual el total de punts del Pokemons, són igual amb l'alçada alt i baix.
+
+
+##### Test de dues mostres de Pokemons de tipus Psychic
+
+**Segons alçada:**
+
+H0: µbaix = µalt
+H1: µbaix < µalt
+
+Utilitzarem un test de dues mostres independents. Pel teorema del límit central, assumim normalitat.
+
+```{r}
+var.test(pokedexAnalysis.Psychic$total_points[pokedexAnalysis.Psychic$Fheight_m=="baix"], pokedexAnalysis.Psychic$total_points[pokedexAnalysis.Psychic$Fheight_m=="alt"], alternative = "less")
+``` 
+
+El resultat del test F és que podem assumir igualtat de variàncies. Per tant, apliquem test t de dues mostres independents per a la diferència de mitjanes, variàncies desconegudes i iguals. El test és unilateral.
+
+
+```{r}
+t.test(total_points~Fheight_m,pokedexAnalysis.Psychic,var.equal=T, alternative="less")
+```
+
+
+El valor p és superior als nivells 0.05 amb un 95% de nivell de confiança, per tant, podem acceptar la hipotesis nul·la del qual el total de punts del Pokemons, són igual amb l'alçada alt i baix.
+
+
+#### 4.3.3 Fer una predicció de com les variables d'estidistica base, el pès i l'alçada influeixen amb la variable base_experience.
+ 
+Aplicarem cinc model de regressió lineal múltiple que cadascún d'ells usaran diferents variables explicatives: attack, defense, sp_attack, sp-defense, hp, speed, Fheight-m i Fweight_kg.
+
+Especificarem en el nivell base (en el relevel): per la variable Fheight_m, la categoria "alt", i per la variable Fweight_kg la categoria "lleuger".
+
+```{r}
+heightR <- relevel(pokedexAnalysis$Fheight_m, ref="alt" ) 
+
+weightR <- relevel(pokedexAnalysis$Fweight_kg, ref="lleuger") 
+
+pokedexAnalysis$heightR <- heightR 
+pokedexAnalysis$weightR <- weightR 
+
+
+mod1 <- lm(base_experience~attack+defense+sp_attack+sp_defense+hp+speed+heightR+weightR, pokedexAnalysis )
+
+mod2 <- lm(base_experience~attack+defense+sp_attack+sp_defense+hp+speed, pokedexAnalysis )
+
+mod3 <- lm(base_experience~attack+defense+hp+speed+heightR+weightR, pokedexAnalysis )
+
+mod4 <- lm(base_experience~attack+sp_attack+hp+speed+heightR+weightR, pokedexAnalysis )
+
+mod5 <- lm(base_experience~attack+defense+sp_attack+sp_defense+heightR+weightR, pokedexAnalysis )
+
+```
+
+Per els anteriors models de regressió lineal múltiple obtinguts, podem utilitzar el coeficient de determinació per mesurar la bondat d'ajust i quedar-nos amb el model que tingui millor coeficient. 
+
+
+```{r}
+#summary(mod1)
+tabla.coeficientes <- matrix(c(1, summary(mod1)$r.squared, 2, summary(mod2)$r.squared, 3,   summary(mod3)$r.squared, 4, summary(mod4)$r.squared, 5, summary(mod5)$r.squared), ncol = 2, byrow = TRUE)
+colnames(tabla.coeficientes) <- c("Model", "R^2") 
+tabla.coeficientes
+```
+
+El primer model és el més convenient ja que te un major coeficient de determinació. Ara utilitzarem aquest model per fer prediccions amb diferents valors: 
+
+
+```{r}
+F0<-data.frame( attack=130, defense=80, sp_attack=110, sp_defense=90, hp=75,speed=20,heightR="alt",weightR="pesat") 
+predict(mod1, F0)
+```
+
+
+```{r}
+F1<-data.frame( attack=60, defense=57, sp_attack=101, sp_defense=86, hp=100,speed=180,heightR="baix",weightR="pesat") 
+predict(mod1, F1)
+```
+
+```{r}
+F2<-data.frame( attack=49, defense=49, sp_attack=65, sp_defense=65, hp=45,speed=45,heightR="baix",weightR="lleuger") 
+predict(mod1, F2)
+```
+```{r}
+F3<-data.frame( attack=130, defense=80, sp_attack=110, sp_defense=90, hp=75,speed=20,heightR="alt",weightR="lleuger") 
+predict(mod1, F3)
+```
+
+
+```{r}
+##valors minims
+F4<-data.frame( attack=5, defense=5, sp_attack=10, sp_defense=20, hp=1,speed=5,heightR="baix",weightR="lleuger") 
+predict(mod1, F4)
+```
+
+
+```{r}
+##valors mitjans
+F5<-data.frame( attack=80.12, defense=74.48, sp_attack=71.73, sp_defense=72.13, hp=69.58,speed=68.53,heightR="baix",weightR="lleuger") 
+predict(mod1, F5)
+```
+
+```{r}
+##valors màxims
+F6<-data.frame( attack=190, defense=250, sp_attack=194, sp_defense=250, hp=255,speed=180,heightR="baix",weightR="lleuger") 
+predict(mod1, F6)
+```
+
+En les anteriors prediccions del model, es pot observar el base_experience. La variable Hp, es una de les variables que té més pes alhora que tingui més base_experience. S'ha fet un anàlisi per veure el comportament segons els valors mínims, mitjans i màxims, i s'ha observat que amb valors mínims fa una predicció d'un Pokémon inexistent, ja que no hi ha cap Pokémon amb una base_experience negativa. Quan és valors mitjans, s'adapta bastant amb la mitjana de base_experience que és de 153.8. I quan es tracta amb valors màxims, deixa una base_experience, més elevada que la que podem trobar en ella.
+
+
+## 5. Representació dels resultats a partir de taules i gràfiques. 
+
+
+Com s'ha pogut veure, durant l'anàlisi s'han realitzat taules i gràfiques per fer un anàlisi visual de les dades.
+
+A continuació mostrem les correlacions realitzades mitjançant gràfics:
+
+#### Correlació dels Pokemons en general
+
+```{r,fig.align='center', corr-general-grafic}
+corrplot.mixed(corr.general,upper="ellipse",number.cex=.9,tl.cex=.8)
+```
+
+
+En el gràfic, es pot observar d'una manera ràpida, que no hi ha correlacions negatives. Quan és un el·lipse més pronunciat, té un color blau més fosc que indica més correlació. Quan més arrodonit i color més claret, menys hi ha correlació positiva. 
+
+Es pot observar que la correlació més forta quan s'estudien els Pokemons en general, és el seu pès i la seva alçada.
+
+
+#### Correlació dels Pokemons Legendaris
+
+```{r,fig.align='center', corr-legendaris-grafic}
+corrplot.mixed(corr.legendary,upper="ellipse",number.cex=.9,tl.cex=.8)
+```
+
+
+En el gràfic, es pot observar d'una manera ràpida, que hi ha poques correlacions negatives. Quan és un el·lipse més pronunciat, té un color blau més fosc que indica més correlació. Quan més arrodonit i color més claret, menys hi ha correlació positiva. Les figures transparents ens indiquen que la correlació està pels voltants del 0. I les figueres de color ataronjat ens indiquen que hi ha un mica de correlació negativa.
+
+Es pot observar que la correlació més forta quan s'estudien els Pokemons Llegendaris, és el seu pès i la seva defensa. I més negativa és defense i sp_attack, que vol dir que quan una d'elles puja l'altre disminueix.
+
+
+#### Correlació dels Pokemons Sub Legendaris
+
+```{r,fig.align='center', corr-sublegendaris-grafic}
+corrplot.mixed(corr.sublegendary,upper="ellipse",number.cex=.9,tl.cex=.8)
+```
+
+
+En el gràfic, es pot observar d'una manera ràpida, que hi ha bastantes correlacions negatives. Quan és un el·lipse més pronunciat, té un color blau més fosc que indica més correlació. Quan més arrodonit i color més claret, menys hi ha correlació positiva. Les figures transparents ens indiquen que la correlació està pels voltants del 0. I les figueres de color ataronjat ens indiquen que hi ha un mica de correlació negativa, i les figueres de color més vermellós, ens indiquen que hi ha molta correlació negativa.
+
+Es pot observar que la correlació més forta quan s'estudien els Pokemons Sub Llegendaris, és el seu pes i la seva l'alçada, i més negativa és defense i sp_attack, que vol dir que quan una d'elles puja l'altre disminueix.
+
+
+#### Correlació dels Pokemons de tipus Bug
+
+```{r,fig.align='center', corr-bug-grafic}
+corrplot.mixed(corr.bug,upper="ellipse",number.cex=.9,tl.cex=.8)
+```
+
+
+En el gràfic, es pot observar d'una manera ràpida, que no hi ha correlacions negatives. Quan és un el·lipse més pronunciat, té un color blau més fosc que indica més correlació. Quan més arrodonit i color més claret, menys hi ha correlació positiva. 
+
+Es pot observar que la correlació més forta quan s'estudien els Pokemons de tipus bug, és el seu pès i la seva alçada.
+
+#### Correlació dels Pokemons de tipus Dragon
+
+```{r,fig.align='center', corr-dragon-grafic}
+corrplot.mixed(corr.dragon,upper="ellipse",number.cex=.9,tl.cex=.8)
+```
+
+
+En el gràfic, es pot observar d'una manera ràpida, que no hi ha correlacions negatives. Quan és un el·lipse més pronunciat, té un color blau més fosc que indica més correlació. Quan més arrodonit i color més claret, menys hi ha correlació positiva. 
+
+Es pot observar que la correlació més forta quan s'estudien els Pokemons de tipus dragon, és el seu total_points i la sp_attack.
+
+#### Correlació dels Pokemons de tipus Poison
+
+```{r,fig.align='center', corr-poison-grafic}
+corrplot.mixed(corr.poison,upper="ellipse",number.cex=.9,tl.cex=.8)
+```
+
+
+En el gràfic, es pot observar d'una manera ràpida, que no hi ha correlacions negatives. Quan és un el·lipse més pronunciat, té un color blau més fosc que indica més correlació. Quan més arrodonit i color més claret, menys hi ha correlació positiva. 
+
+Es pot observar que la correlació més forta quan s'estudien els Pokemons de tipus Poison, és el seu total_points i la sp_defense.
+
+
+#### Correlació dels Pokemons de tipus Steel
+
+```{r,fig.align='center', corr-steel-grafic}
+corrplot.mixed(corr.steel,upper="ellipse",number.cex=.9,tl.cex=.8)
+```
+
+En el gràfic, es pot observar d'una manera ràpida, que no hi ha correlacions negatives. Quan és un el·lipse més pronunciat, té un color blau més fosc que indica més correlació. Quan més arrodonit i color més claret, menys hi ha correlació positiva. 
+
+Es pot observar que la correlació més forta quan s'estudien els Pokemons de tipus Steel, és el seu pès i la l'alçada.
+
+#### Correlació dels Pokemons de tipus Psychic
+
+```{r,fig.align='center', corr-psychic-grafic}
+corrplot.mixed(corr.psychic,upper="ellipse",number.cex=.9,tl.cex=.8)
+```
+
+En el gràfic, es pot observar d'una manera ràpida, que no hi ha correlacions negatives. Quan és un el·lipse més pronunciat, té un color blau més fosc que indica més correlació. Quan més arrodonit i color més claret, menys hi ha correlació positiva. 
+
+Es pot observar que la correlació més forta quan s'estudien els Pokemons de tipus Steel, és el total_points i l'attack.
+
+
+## 6. Resolució del problema. A partir dels resultats obtinguts, quines són les conclusions? Els resultats permeten respondre al problema? 
+
+Amb l'estudi realitzat, hem estudiat especialment variables del Pokémon com la seva alçada i el seu pès, juntament amb les variables d’estadístiques bàsiques: total de punts, HP, atac, defensa, velocitat, atac especial i desfensa especial i llavors de la informació d’entrenament: l'experiència base. Pensem que aquestes variables analitzades ens han destapat coneixaments que no ens esperàvem, com que els Pokémons menys estables són els Llegendaris i Sub llegendaris, hem pogut veure que les variables entre elles tenen poca relació. Creiem que això pot ser degut a que aquets Pokemons tenen unes característiques molt variades. Hem estudiat els tipus de Pokémon: bug, dragon, poison, psychic i steel, perquè amb l'estudi visual de la distribució del tipus amb el total de punts, són els que ens han cridat més l'atenció, els dragon, els més forts, els bug els més dèbils, els poison, els més destacats en els llegendàris, els psychic i amb els steels, els que tenen els quartils i els bigotis del boxplot, més proporcionats. Hem pogut concloure, en forma general, el pès i l'alçada dels pokemons es correlacionen molt bé, cosa que creiem que és força lògica ja que normalment quan es te més alçada també es te més pes. S'ha demostrat que els Pokemons de tipus dragon són els més forts, i tenen les variables d’estadístiques base més correlacionades. Els Sub llegendaris, els que tenen les variables d’estadístiques base amb correlacions més negatives. Els de tipus poison i steel són bastant iguals en correlació de les variables d’estadístiques base. I els de tipus bug, els més fluixets.
+
+En relació a l'alçada i el pes, si influeix amb les estadístiques base, en general quan més pes, més total de punts, excepte els de tipus sub llegendaris que no hi ha entre si pesen poc o molt. En canvi en relació a la seva alçada, en la majoria dels casos l'alçada no influeix si són baixos o alts en relació al total_points, excepte els de tipus Poison que quan més alts més total_points.
+
+Referent a l'estudi de l’experiència base, es pot dir que el que influeix una mica més és l'hp, però en general totes les variables d’estadística base tenen més o menys un pes per donar el valor de l’experiència base. Ens ha sobtat que quan hem posat els mínims que hi ha a la base de dades, el valor ha estat negatiu.
+
+Per tant, podem dir que hem pogut resoldre les inquietuds que teníem respecte els Pokemons més forts, els llegendaris i sub llegendaris. També hem pogut observar que cada tipologia de Pokemons, té alguna particularitat en especial respecte al total_points, cada ún d'ells es correlaciona amb més força amb una variable diferent. El de tipus Psychic és l'attack amb un 0.888, el de tipus Steel és l'HP amb un 0.804, el de tipus Poison és l'sp_defense amb un 0.866, el de tipus Dragon és sp_attack amb un 0.907, el de tipus Bug és HP amb un 0.813, els sub llegendaris és sp_defense amb un 0.42, els llegendaris és attack amb un 0.539 i els de tipus normal és sp_defense amb un 0.729. 
+
+
+## 7. Codi: Cal adjuntar el codi, preferiblement en R, amb el que s’ha realitzat la neteja, anàlisi i representació de les dades. Si ho preferiu, també podeu treballar en Python.  
+ 
+El codi R, està inclòs en aquest mateix informe.
+
+## 8. Bibliografia
+
+Donem gràcies a Mario Tormo Romero per Dataset de https://www.kaggle.com/mariotormo/complete-pokemon-dataset-updated-090420
+
+* https://pokemon.fandom.com/es/wiki/Crianza_Pok%C3%A9mon
+* https://es.wikipedia.org/wiki/Coeficiente_de_correlaci%C3%B3n_de_Spearman
+* https://pokemon.fandom.com/es/wiki/Experiencia_base
+
+
+## 9.Contribucions
+
+**Investigació prèvia:** David Navarro, Antoni Llussà
+**Redacció respostes:** David Navarro, Antoni Llussà
+**Desenvolupament codi:** David Navarro, Antoni Llussà
+
