@@ -11,6 +11,7 @@
 **Fitxers:** 
 - Practica2-final.Rmd: R markdown amb codi R per generar l'informe de l'anàlisi dels Pokemons.
 - Practica2-final.pdf: Informe de la pràctica.
+- Practica2-final.html: Informe de la pràctica en html.
 - pokedex_(Update_05.20).csv: Arxiu del dataset.
 - README.md : Arxiu readme.
 
